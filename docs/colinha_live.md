@@ -1,0 +1,40 @@
+- Hook
+    - Projeto prático de vibe coding
+    - AO VIVAÇO, sem edição
+    - Planejamento e execução de projeto de extração e visualização de dados
+    - Objetivo:
+        - "Qual a chance de o Wagner Moura ganhar o Oscar de melhor ator?"
+        - **Quantos atores latinos já ganharam Oscar de melhor ator?**
+    - Planejamento rude:
+        - Montar plano de projeto
+        - Raspar dados da internet
+        - Modelar dados em tabela(s)
+        - Montar visualização em gráficos
+- Motivações pessoais
+    - "Mata a cobra e mostra o pau"
+    - Inspirar galera a fazer projetos
+    - Treinar fazer live, perder a vergonha
+    - Explicar conceitos de IA e Dados
+- História & Motivação do projeto
+    - Fernanda Lima 2025
+    - Segunda chance - Waguinho 2026
+    - Projeto simples, bom aprendizado, potencial de viralizar
+- Etapa 1: planejamento
+    - Erro comum: sair mandando a IA fazer as coisas sem pensar bem
+    - Conceito geral do planejamento - Output, Input, etapas
+    - Abrir prompt_inicial.md e ir preenchendo
+        - Objetivo do projeto
+        - Tarefa esperada da conversa (planejamento em etapas verificáveis)
+        - Questione pressupostos
+        - Proponha abordagens e avalie em prós, contras e recomendação
+        - Faça perguntas
+    - Desenhar Output:
+        - Esboço de gráfico no Mokkup
+        - Esboço de tabela e gráfico no Sheets
+    - Desenhar Input:
+        - Wikipedia
+        - TMDB?
+    - Desenhar Etapas:
+        - Raspagem
+        - Modelagem em tabela
+        - Visualização (Sheets? Jupyter?)
