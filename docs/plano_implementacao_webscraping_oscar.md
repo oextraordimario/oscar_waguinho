@@ -1,18 +1,19 @@
-# Planejamento de Implementação: Oscar de Melhor Ator
+# Planejamento de Implementa??o: Oscar de Melhor Ator
 
 ## Objetivo
-Construir um pipeline em Python para raspar dados da Wikipedia sobre vencedores e indicados ao Oscar de Melhor Ator, consolidar os dados em planilha e gerar visualizações que permitam responder, em etapas, quem são os atores "estrangeiros" e, depois, quais deles se enquadram como "latinos".
+Construir um pipeline em Python para raspar dados da Wikipedia sobre vencedores e indicados ao Oscar de Melhor Ator, consolidar os dados em planilha e gerar visualiza??es que permitam responder, em etapas, quem s?o os atores "estrangeiros" e, depois, quais deles se enquadram como "latinos".
 
 ## Questionamento dos Pressupostos
-- `grupo_geral_nacionalidade` com valores `EUA` vs `Estrangeiro` não responde sozinho à pergunta sobre atores latinos.
-- A coluna `nacionalidade` não é uma base estável o suficiente para classificação, porque a Wikipedia varia entre adjetivo no resumo, `citizenship`, local de nascimento e múltiplas cidadanias.
-- Se a regra de "latino" for "nascido em país latino", então a variável realmente usada para classificar não é `nacionalidade`, e sim `pais_nascimento`.
+- `grupo_geral_nacionalidade` com valores `EUA` vs `Estrangeiro` n?o responde sozinho ? pergunta sobre atores latinos.
+- A coluna `nacionalidade` n?o ? uma base est?vel o suficiente para classifica??o, porque a Wikipedia varia entre adjetivo no resumo, `citizenship`, local de nascimento e m?ltiplas cidadanias.
+- Se a regra de "latino" for "nascido em pa?s latino", ent?o a vari?vel realmente usada para classificar n?o ? `nacionalidade`, e sim `pais_nascimento`.
 
-## Recomendação de Modelagem
-Em vez de tratar `nacionalidade` como fonte única da verdade, recomendo separar o dado bruto do dado derivado.
+## Modelagem Definida
+Vamos tratar a aba `crua` como realmente crua e audit?vel. Isso significa separar dado bruto de dado derivado e manter rastreabilidade suficiente para revisar casos amb?guos sem depender de inspe??o manual posterior.
 
-### Campos brutos recomendados
+### Campos brutos definidos
 - `nome_ator`
+- `nacionalidade`
 - `filme_indicado`
 - `ano_filme`
 - `numero_cerimonia`
@@ -20,259 +21,282 @@ Em vez de tratar `nacionalidade` como fonte única da verdade, recomendo separar
 - `url_ator`
 - `url_filme`
 - `url_cerimonia`
+- `eh_vencedor`
 - `nacionalidade_raw`
 - `cidadania_raw`
 - `pais_nascimento`
 - `local_nascimento_raw`
 - `fonte_classificacao`
-
-### Campos derivados recomendados
-- `grupo_geral_nacionalidade`
-- `grupo_especifico_nacionalidade`
-- `eh_vencedor`
 - `status_extracao`
 
-## Regras Recomendadas
+### Campos derivados definidos
+- `grupo_geral_nacionalidade`
+- `grupo_especifico_nacionalidade`
+
+## Regras Definidas
 ### Regra para `grupo_geral_nacionalidade`
-- Usar `pais_nascimento` como base canônica de classificação.
+- Usar `pais_nascimento` como base can?nica de classifica??o.
 - Se `pais_nascimento = EUA`, classificar como `EUA`.
-- Caso contrário, classificar como `Estrangeiro`.
+- Caso contr?rio, classificar como `Estrangeiro`.
 
 ### Regra para `grupo_especifico_nacionalidade`
 - Derivar de `pais_nascimento`.
+- Categorias iniciais definidas: `EUA`, `Latino`, `Europeu`, `Asi?tico`, `Africano`, `Oceania`, `Canadense`, `Outro`.
 - Exemplos:
   - `EUA` -> `EUA`
   - `Irlanda` -> `Europeu`
-  - `México` -> `Latino`
+  - `M?xico` -> `Latino`
   - `Brasil` -> `Latino`
 
-### Regra para múltiplas nacionalidades/cidadanias
-- Não tentar reduzir o dado bruto para um único valor manualmente.
+### Regra para m?ltiplas nacionalidades/cidadanias
+- N?o tentar reduzir o dado bruto para um ?nico valor manualmente.
 - Armazenar o texto bruto encontrado em `nacionalidade_raw` e/ou `cidadania_raw`.
-- Para agrupamento analítico, usar `pais_nascimento` como desempate determinístico.
+- Para agrupamento anal?tico, usar `pais_nascimento` como desempate determin?stico.
 
 Justificativa:
-- Essa regra é estável.
-- Ela é compatível com seu critério atual para "latino".
-- Ela evita decisões arbitrárias quando a página traz dupla cidadania ou adjetivos mistos.
+- Essa regra ? est?vel.
+- Ela ? compat?vel com seu crit?rio atual para "latino".
+- Ela evita decis?es arbitr?rias quando a p?gina traz dupla cidadania ou adjetivos mistos.
 
-Limitação:
-- "Nascido fora dos EUA" não é sinônimo perfeito de "estrangeiro" em todos os contextos culturais e biográficos. Mesmo assim, é a regra mais operacional e auditável para este projeto.
+Limita??o:
+- "Nascido fora dos EUA" n?o ? sin?nimo perfeito de "estrangeiro" em todos os contextos culturais e biogr?ficos. Mesmo assim, ? a regra mais operacional e audit?vel para este projeto.
 
-## Recomendação de Fonte
-### Opção A: só Wikipedia HTML
-Prós:
-- Mantém o projeto fiel ao escopo inicial.
-- Mais simples de explicar.
+### Regra para `eh_vencedor`
+- Exportar como `TRUE/FALSE`.
 
-Contras:
-- Estrutura inconsistente entre páginas de atores.
-- Extração de `nacionalidade` e `cidadania` fica frágil.
+### Regra para `Latino`
+- Considerar como `Latino` qualquer ator nascido em pa?s soberano da Am?rica Latina.
+- `Puerto Rico` ser? tratado como `EUA`.
 
-### Opção B: Wikipedia HTML + Wikidata como fallback
-Prós:
-- Melhora a robustez para `pais_nascimento` e cidadania.
-- Reduz tratamento manual de páginas fora do padrão.
+## Fonte Definida
+Usar Wikipedia como fonte principal e Wikidata como fallback para campos biogr?ficos estruturados, especialmente `pais_nascimento` e `cidadania`.
 
-Contras:
-- Introduz segunda fonte.
-- Exige regra clara de precedência entre fontes.
-
-### Recomendação
-Usar Wikipedia como fonte principal e Wikidata apenas como fallback para campos biográficos estruturados, especialmente `pais_nascimento` e `cidadania`.
-
-Regra de precedência sugerida:
+Regra de preced?ncia:
 1. Extrair da infobox da Wikipedia.
-2. Se faltar ou vier ambíguo, consultar Wikidata.
+2. Se faltar ou vier amb?guo, consultar Wikidata.
 3. Registrar em `fonte_classificacao` qual origem foi usada.
 
-## Fases de Implementação
+Justificativa:
+- Mant?m o scraping aderente ao escopo original.
+- Reduz a fragilidade de depender apenas do HTML da Wikipedia.
+- Preserva auditabilidade quando a classifica??o vier de uma fonte auxiliar.
+
+## Fases de Implementa??o
 ## Fase 1: Fechar contrato de dados
 Objetivo:
-- Congelar o schema final da aba `crua` e a lógica de classificação.
+- Congelar o schema final da aba `crua` e a l?gica de classifica??o.
 
 Atividades:
-- Revisar a planilha de referência atualizada.
+- Revisar a planilha de refer?ncia atualizada.
 - Confirmar os nomes finais das colunas.
-- Definir o conjunto inicial de categorias para `grupo_especifico_nacionalidade`.
-- Definir como marcar `eh_vencedor`.
+- Confirmar o conjunto inicial de categorias para `grupo_especifico_nacionalidade`.
+- Confirmar como marcar `eh_vencedor`.
 
-Entregável:
+Defini??es fechadas:
+- `eh_vencedor` ser? exportado como `TRUE/FALSE`.
+- `grupo_especifico_nacionalidade` usar? inicialmente: `EUA`, `Latino`, `Europeu`, `Asi?tico`, `Africano`, `Oceania`, `Canadense`, `Outro`.
+- A regra de `Latino` ser?: ator nascido em pa?s soberano da Am?rica Latina.
+- `Puerto Rico` ser? tratado como `EUA`.
+
+Entreg?vel:
 - Documento de schema e regras aprovado.
 
-Verificação humana:
-- Conferir se cada coluna tem definição clara e sem sobreposição.
+Verifica??o humana:
+- Conferir se cada coluna tem defini??o clara e sem sobreposi??o.
 
-Verificação do agente:
-- Validar que todas as colunas necessárias podem ser preenchidas pelo pipeline.
+Verifica??o do agente:
+- Validar que todas as colunas necess?rias podem ser preenchidas pelo pipeline.
 
-## Fase 2: Prova de estrutura das páginas-fonte
+## Fase 2: Prova de estrutura das p?ginas-fonte
 Objetivo:
-- Confirmar como extrair dados da página principal e das páginas individuais.
+- Confirmar como extrair dados da p?gina principal e das p?ginas individuais.
 
 Atividades:
-- Inspecionar a página `Academy Award for Best Actor`.
-- Mapear a tabela ou tabelas que contêm vencedores e indicados.
-- Validar se o link da cerimônia pode ser usado para obter `ano_cerimonia`.
-- Testar um pequeno conjunto de páginas de atores com perfis diferentes.
+- Inspecionar a p?gina `Academy Award for Best Actor`.
+- Mapear a tabela ou tabelas que cont?m vencedores e indicados.
+- Validar se o link da cerim?nia pode ser usado para obter `ano_cerimonia`.
+- Testar um pequeno conjunto de p?ginas de atores com perfis diferentes.
 
-Amostra mínima sugerida:
+Amostra m?nima sugerida:
 - ator nascido nos EUA
 - ator europeu
 - ator latino
-- ator com dados biográficos incompletos
+- ator com dados biogr?ficos incompletos
 
-Entregável:
-- Mapa de seletores e estratégia de parsing.
+Entreg?vel:
+- Mapa de seletores e estrat?gia de parsing.
 
-Verificação humana:
+Verifica??o humana:
 - Revisar se os exemplos cobrem os principais casos-limite.
 
-Verificação do agente:
-- Executar scraping pontual e comparar com a página manualmente.
+Verifica??o do agente:
+- Executar scraping pontual e comparar com a p?gina manualmente.
 
 ## Fase 3: Extrair lista base da categoria
 Objetivo:
 - Gerar uma tabela consolidada com todos os vencedores e indicados.
 
 Atividades:
-- Raspar a página principal.
+- Raspar a p?gina principal.
 - Normalizar linhas por ator/filme/ano.
 - Capturar `nome_ator`, `filme_indicado`, `ano_filme`, `numero_cerimonia`, `url_ator`, `url_filme`, `url_cerimonia`, `eh_vencedor`.
 
-Entregável:
-- Dataset intermediário com linhas da categoria.
+Entreg?vel:
+- Dataset intermedi?rio com linhas da categoria.
 
-Verificação humana:
-- Conferir uma amostra manual contra a página.
+Verifica??o humana:
+- Conferir uma amostra manual contra a p?gina.
 
-Verificação do agente:
-- Checar contagem de linhas por década e presença dos links essenciais.
+Verifica??o do agente:
+- Checar contagem de linhas por d?cada e presen?a dos links essenciais.
 
-## Fase 4: Enriquecer dados biográficos
+## Fase 4: Enriquecer dados biogr?ficos
 Objetivo:
-- Preencher os campos biográficos de cada ator.
+- Preencher os campos biogr?ficos de cada ator.
 
 Atividades:
 - Visitar `url_ator`.
 - Extrair `local_nascimento_raw`, `pais_nascimento`, `nacionalidade_raw`, `cidadania_raw`.
-- Aplicar fallback no Wikidata quando necessário.
+- Aplicar fallback no Wikidata quando necess?rio.
 - Persistir `status_extracao` e `fonte_classificacao`.
 
-Entregável:
+Entreg?vel:
 - Aba `crua` preenchida com campos brutos e rastreabilidade da origem.
 
-Verificação humana:
-- Auditar uma amostra com casos simples e ambíguos.
+Verifica??o humana:
+- Auditar uma amostra com casos simples e amb?guos.
 
-Verificação do agente:
-- Gerar relatório de quantos registros ficaram sem `pais_nascimento`.
+Verifica??o do agente:
+- Gerar relat?rio de quantos registros ficaram sem `pais_nascimento`.
 
-## Fase 5: Derivar classificações analíticas
+## Fase 5: Derivar classifica??es anal?ticas
 Objetivo:
-- Popular as colunas de agrupamento usadas na análise.
+- Popular as colunas de agrupamento usadas na an?lise.
 
 Atividades:
-- Aplicar a regra `pais_nascimento = EUA => EUA; senão Estrangeiro`.
-- Mapear o país para `grupo_especifico_nacionalidade`.
-- Separar análises de `vencedores` e `indicados`.
+- Aplicar a regra `pais_nascimento = EUA => EUA; sen?o Estrangeiro`.
+- Mapear o pa?s para `grupo_especifico_nacionalidade`.
+- Separar an?lises de `vencedores` e `indicados`.
 
-Entregável:
+Entreg?vel:
 - Colunas derivadas consistentes na aba `crua`.
 
-Verificação humana:
+Verifica??o humana:
 - Validar manualmente alguns atores conhecidos.
 
-Verificação do agente:
-- Testes automatizados para regras de classificação com casos sintéticos.
+Verifica??o do agente:
+- Testes automatizados para regras de classifica??o com casos sint?ticos.
 
-## Fase 6: Montar agregações
+## Fase 6: Montar agrega??es
 Objetivo:
 - Preencher a aba `agregada`.
 
 Atividades:
-- Criar agregações por `grupo_geral_nacionalidade`.
-- Criar agregações por `grupo_especifico_nacionalidade`.
+- Criar agrega??es por `grupo_geral_nacionalidade`.
+- Criar agrega??es por `grupo_especifico_nacionalidade`.
 - Separar contagens para `vencedores` e `indicados`.
 
-Entregável:
+Defini??o fechada:
+- A aba `agregada` deve conter contagens separadas de vencedores e indicados.
+
+Entreg?vel:
 - Aba `agregada` pronta para consumo.
 
-Verificação humana:
+Verifica??o humana:
 - Conferir se os totais batem com a aba `crua`.
 
-Verificação do agente:
+Verifica??o do agente:
 - Recalcular agregados a partir do dataframe e comparar com a planilha exportada.
 
-## Fase 7: Gerar visualização
+## Fase 7: Gerar visualiza??o
 Objetivo:
-- Produzir o gráfico de pizza de referência e deixar espaço para gráficos futuros.
+- Produzir o gr?fico de pizza de refer?ncia e deixar espa?o para gr?ficos futuros.
 
 Atividades:
 - Gerar pizza para `EUA` vs `Estrangeiro`.
-- Avaliar se pizza continua adequada quando houver mais categorias específicas.
-- Exportar imagem no padrão de `refs/grafico_nacionalidade.png`.
+- Avaliar se pizza continua adequada quando houver mais categorias espec?ficas.
+- Exportar imagem no padr?o de `refs/grafico_nacionalidade.png`.
 
-Entregável:
+Defini??o fechada:
+- O gr?fico principal considerar? apenas vencedores, para manter ader?ncia ao objetivo principal do projeto.
+
+Entreg?vel:
 - Arquivo PNG final.
 
-Verificação humana:
-- Conferir legibilidade, rótulos e consistência com a tabela agregada.
+Verifica??o humana:
+- Conferir legibilidade, r?tulos e consist?ncia com a tabela agregada.
 
-Verificação do agente:
-- Validar se os percentuais do gráfico batem com os agregados.
+Verifica??o do agente:
+- Validar se os percentuais do gr?fico batem com os agregados.
 
 ## Fase 8: Robustez e repetibilidade
 Objetivo:
 - Garantir que o pipeline possa ser reexecutado sem ajustes manuais.
 
 Atividades:
-- Parametrizar URLs e caminhos de saída.
+- Parametrizar URLs e caminhos de sa?da.
 - Tratar falhas de request e campos ausentes.
 - Salvar logs de scraping.
 - Documentar como rodar o projeto do zero.
 
-Entregável:
-- Pipeline repetível e documentado.
+Conven??o de sa?da definida:
+- N?o sobrescrever arquivos de refer?ncia em `refs/`.
+- Gerar novos arquivos por fase.
+- Conven??o de nomes: `fase1_<nome>`, `fase2_<nome>`, `fase3_<nome>` e assim por diante.
+- Exemplo: `fase3_entregavel_tabela.xlsx`, `fase7_grafico_nacionalidade.png`.
 
-Verificação humana:
-- Rodar a partir de um ambiente limpo seguindo a documentação.
+Entreg?vel:
+- Pipeline repet?vel e documentado.
 
-Verificação do agente:
-- Execução de ponta a ponta sem intervenção manual.
+Verifica??o humana:
+- Rodar a partir de um ambiente limpo seguindo a documenta??o.
 
-## Decisões Técnicas Recomendadas
+Verifica??o do agente:
+- Execu??o de ponta a ponta sem interven??o manual.
+
+## Decis?es T?cnicas Recomendadas
 - Linguagem: Python
 - Parsing HTML: `requests` + `beautifulsoup4`
 - Tabelas: `pandas`
 - Planilha Excel: `openpyxl`
-- Gráficos: `matplotlib`
-- Configuração de categorias por país: arquivo de mapeamento simples em JSON ou CSV
+- Gr?ficos: `matplotlib`
+- Configura??o de categorias por pa?s: arquivo de mapeamento simples em JSON ou CSV
 
 ## Riscos Principais
-- Mudança na estrutura HTML da Wikipedia.
-- Páginas de atores sem infobox padronizada.
-- Casos-limite de país de nascimento e identidade cultural.
+- Mudan?a na estrutura HTML da Wikipedia.
+- P?ginas de atores sem infobox padronizada.
+- Casos-limite de pa?s de nascimento e identidade cultural.
 - Ambiguidade entre "nacionalidade", "cidadania" e "local de nascimento".
 
-## Estratégias de Mitigação
-- Registrar o dado bruto junto da classificação derivada.
+## Estrat?gias de Mitiga??o
+- Registrar o dado bruto junto da classifica??o derivada.
 - Usar fallback controlado no Wikidata.
-- Manter lista explícita de países mapeados para `Latino`.
-- Incluir relatório de exceções para revisão manual.
+- Manter lista expl?cita de pa?ses mapeados para `Latino`.
+- Incluir relat?rio de exce??es para revis?o manual.
 
-## Critérios de Aceite do Projeto
-- A aba `crua` contém todos os vencedores e indicados de Melhor Ator.
-- Cada linha possui links rastreáveis e campos biográficos auditáveis.
+## Crit?rios de Aceite do Projeto
+- A aba `crua` cont?m todos os vencedores e indicados de Melhor Ator.
+- Cada linha possui links rastre?veis e campos biogr?ficos audit?veis.
 - A aba `agregada` reproduz corretamente os totais da aba `crua`.
-- O gráfico `EUA` vs `Estrangeiro` bate com a agregação.
-- O pipeline consegue ser executado novamente sem edição manual de código.
+- O gr?fico `EUA` vs `Estrangeiro` bate com a agrega??o.
+- O pipeline consegue ser executado novamente sem edi??o manual de c?digo.
 
-## Próximo Passo Recomendado
+## Resumo das Decis?es Fechadas
+- Fonte principal: Wikipedia.
+- Fallback: Wikidata.
+- Aba `crua`: audit?vel, com campos brutos e derivados.
+- `eh_vencedor`: `TRUE/FALSE`.
+- `grupo_especifico_nacionalidade`: `EUA`, `Latino`, `Europeu`, `Asi?tico`, `Africano`, `Oceania`, `Canadense`, `Outro`.
+- Regra de `Latino`: nascido em pa?s soberano da Am?rica Latina.
+- `Puerto Rico`: tratar como `EUA`.
+- Arquivos de sa?da: sempre novos, com prefixo da fase.
+- Gr?fico principal: somente vencedores.
+
+## Pr?ximo Passo Recomendado
 Implementar primeiro uma prova de conceito curta com 5 a 10 atores para validar:
-- extração da página principal
-- extração de `pais_nascimento`
-- regra de classificação
-- exportação para a aba `crua`
+- extra??o da p?gina principal
+- extra??o de `pais_nascimento`
+- regra de classifica??o
+- exporta??o para a aba `crua`
 
 Se essa prova de conceito fechar, o restante do pipeline fica muito menos arriscado.
